@@ -1,0 +1,56 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Patient {
+  id             Int           @id @default(autoincrement())
+  firstName      String
+  lastName       String
+  username       String        @unique(map: "patient_username")
+  hashedPassword String
+  doctor         Doctor?       @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  doctorId       Int?
+  interactions   Interaction[]
+  messages       Message[]
+}
+
+model Doctor {
+  id           Int           @id @default(autoincrement())
+  name         String
+  phoneNumber  String
+  patient      Patient[]
+  interactions Interaction[]
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  content    String
+  createdAt  DateTime @default(now())
+  isResponse Boolean  @default(true)
+  patientId  Int
+  patient    Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model Interaction {
+  id              Int      @id @default(autoincrement())
+  title           String?
+  interactionDate DateTime @default(now())
+  patient         Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patientId       Int?
+  doctor          Doctor?  @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  doctorId        Int?
+  query           String
+  response        String
+}
