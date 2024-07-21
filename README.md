@@ -31,3 +31,7 @@ Deployed link - https://stepsai-assignment.vercel.app/
 ### Database Schema
 
 ![image](https://github.com/user-attachments/assets/e4118e57-c2ad-4306-a579-a3849407dca6)
+
+### Demo Video
+
+https://project-images-2.s3.ap-south-1.amazonaws.com/Patient+Chatbot+-+Google+Chrome+2024-07-21+13-17-57.mp4
