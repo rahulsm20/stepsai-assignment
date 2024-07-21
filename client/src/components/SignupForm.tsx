@@ -16,9 +16,11 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { useState } from "react";
 import { RotateCw } from "lucide-react";
+import axios from "axios";
 
 export function SignupForm() {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>();
   const { register, handleSubmit } = useForm({
     defaultValues: {
       username: "",
@@ -37,7 +39,11 @@ export function SignupForm() {
       }
       location.replace("/");
     } catch (err) {
-      console.log(err);
+      if (axios.isAxiosError(err) && err.response) {
+        setError(String(err.response.data));
+      } else {
+        setError("An unexpected error occurred");
+      }
     } finally {
       setLoading(false);
     }
@@ -90,20 +96,29 @@ export function SignupForm() {
             </div>
           </div>
         </CardContent>
-        {loading ? (
-          <div>
-            <RotateCw className="animate-spin" />
-          </div>
-        ) : (
-          <CardFooter className="flex flex-col text-start justify-between gap-2">
-            <Button className="self-start" type="submit">
-              Signup
-            </Button>
-            <span>
-              Already have an account? <Link to="/login">Login here</Link>
-            </span>
-          </CardFooter>
-        )}
+        <CardFooter className="flex flex-col text-start justify-between gap-2">
+          <Button
+            className="self-start flex gap-1"
+            type="submit"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <span>Processing</span>
+                <RotateCw className="animate-spin w-4" />
+              </>
+            ) : (
+              <>Signup</>
+            )}
+          </Button>
+          <span className="flex gap-1">
+            Already have an account?
+            <Link to="/login" className="text-[#6c67ff]">
+              Login here
+            </Link>
+          </span>
+          {error && <p className="text-red-600">{error}</p>}
+        </CardFooter>
       </form>
     </Card>
   );

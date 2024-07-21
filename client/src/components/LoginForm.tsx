@@ -16,19 +16,21 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { useState } from "react";
 import { RotateCw } from "lucide-react";
+import axios from "axios";
 
 export function LoginForm() {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const { register, handleSubmit } = useForm({
     defaultValues: {
       username: "",
       password: "",
-      name: "",
     },
   });
   const dispatch = useDispatch();
   const submitForm = async (data: FieldValues) => {
+    setError("");
     setLoading(true);
     try {
       const user = await api.post("/auth/login", data);
@@ -37,7 +39,11 @@ export function LoginForm() {
       }
       location.replace("/");
     } catch (err) {
-      console.log(err);
+      if (axios.isAxiosError(err) && err.response) {
+        setError(String(err.response.data));
+      } else {
+        setError("An unexpected error occurred");
+      }
     } finally {
       setLoading(false);
     }
@@ -72,20 +78,29 @@ export function LoginForm() {
             </div>
           </div>
         </CardContent>
-        {loading ? (
-          <div>
-            <RotateCw className="animate-spin" />
-          </div>
-        ) : (
-          <CardFooter className="flex flex-col text-start justify-between gap-2">
-            <Button className="self-start" type="submit">
-              Login
-            </Button>
-            <span>
-              Don't have an account? <Link to="/signup">Signup here</Link>
-            </span>
-          </CardFooter>
-        )}
+        <CardFooter className="flex flex-col text-start justify-between gap-2">
+          <Button
+            className="self-start flex gap-1"
+            type="submit"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <span>Processing</span>
+                <RotateCw className="animate-spin w-4" />
+              </>
+            ) : (
+              <>Login</>
+            )}
+          </Button>
+          <span>
+            Don't have an account?{" "}
+            <Link to="/signup" className="text-[#6c67ff]">
+              Signup here
+            </Link>
+          </span>
+          {error && <p className="text-red-600">{error}</p>}
+        </CardFooter>
       </form>
     </Card>
   );

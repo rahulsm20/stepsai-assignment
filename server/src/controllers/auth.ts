@@ -22,6 +22,9 @@ declare global {
 export const Login: RequestHandler = async (req, res) => {
   try {
     const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json("Please enter all details");
+    }
     const user = await prisma.patient.findUnique({
       where: {
         username,
@@ -33,34 +36,33 @@ export const Login: RequestHandler = async (req, res) => {
       },
     });
     if (!user) {
-      throw new Error("User doesn't exist");
+      return res.status(400).json("User with that username doesn't exist");
     }
     const passwordMatches = await bcrypt.compare(password, user.hashedPassword);
-    if (passwordMatches) {
-      const token = jwt.sign(
-        JSON.stringify({ id: user.id }),
-        process.env.JWT_SECRET || ""
-      );
-      await connectRedis();
-      await redisClient.set(`sid:${token}`, user.id, {
-        EX: 60 * 60 * 24,
-      });
-      await disconnectRedis();
-      const secureCookie = process.env.NODE_ENV === "production";
-      console.log("secureCookie:", secureCookie);
-
-      res.cookie("session_token", token, {
-        maxAge: 100 * 10 * 60 * 60 * 24,
-        signed: true,
-        path: "/",
-        httpOnly: true,
-        sameSite: "strict",
-        secure: secureCookie,
-      });
-      const { hashedPassword: pass, ...formattedUser } = user;
-
-      return res.status(200).json(formattedUser);
+    if (!passwordMatches) {
+      return res.status(400).json("Incorrect credentials");
     }
+    const token = jwt.sign(
+      JSON.stringify({ id: user.id }),
+      process.env.JWT_SECRET || ""
+    );
+    await connectRedis();
+    await redisClient.set(`sid:${token}`, user.id, {
+      EX: 60 * 60 * 24,
+    });
+    await disconnectRedis();
+    const secureCookie = process.env.NODE_ENV === "production";
+    res.cookie("session_token", token, {
+      maxAge: 100 * 10 * 60 * 60 * 24,
+      signed: true,
+      path: "/",
+      httpOnly: true,
+      secure: secureCookie,
+      sameSite: "none",
+    });
+    const { hashedPassword: pass, ...formattedUser } = user;
+
+    return res.status(200).json(formattedUser);
   } catch (err) {
     console.log(err);
     return res.status(404).json(err);
@@ -71,9 +73,15 @@ export const Signup: RequestHandler = async (req, res) => {
   try {
     const { firstName, lastName, username, password } = req.body;
     if (!firstName || !lastName || !username || !password) {
-      throw new Error("Please enter all details");
+      return res.status(400).json("Please enter all details");
     }
     const hashedPassword = await bcrypt.hash(password, 10);
+    const userExists = await prisma.patient.findUnique({
+      where: { username },
+    });
+    if (userExists) {
+      return res.status(400).json("User with that username already exists");
+    }
     const user = await prisma.patient.create({
       data: {
         firstName,
@@ -98,8 +106,8 @@ export const Signup: RequestHandler = async (req, res) => {
       signed: true,
       path: "/",
       httpOnly: true,
-      sameSite: "strict",
       secure: secureCookie,
+      sameSite: "none",
     });
     const { hashedPassword: pass, ...formattedUser } = user;
     return res.status(200).json(formattedUser);
